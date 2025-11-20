@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Catch My Hearts 💗</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Dancing+Script:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffeef6;
+    --panel:#fff5fb;
+    --accent:#ff6fa3;
+    --muted:#8a6b7a;
+    --shadow: 0 10px 30px rgba(170,85,120,0.08);
+    --glass: rgba(255,255,255,0.6);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;margin:0;font-family:Poppins,system-ui,system-ui,-apple-system,Segoe UI,Roboto; background:linear-gradient(180deg,#fff3fb,#ffeef6); color:#3b2b36; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:18px auto;padding:18px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .logo{font-size:34px}
+  h1{margin:0;font-family:'Dancing Script',cursive;color:var(--accent);font-size:28px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+
+  .panel{background:var(--panel);border-radius:14px;padding:14px;box-shadow:var(--shadow);border:1px solid rgba(255,110,150,0.06);}
+
+  /* game stage */
+  .stage{
+    margin-top:16px;
+    position:relative;
+    height:64vh;
+    min-height:420px;
+    border-radius:12px;
+    overflow:hidden;
+    background:
+      radial-gradient(600px 200px at 10% 20%, rgba(255,255,255,0.35), transparent 10%),
+      linear-gradient(180deg, rgba(255,245,252,0.6), rgba(255,238,246,0.6));
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+  }
+
+  /* controls top */
+  .hud{display:flex;gap:10px;align-items:center;padding:8px 6px}
+  .scoreBox, .missBox{background:var(--glass);padding:8px 12px;border-radius:12px;font-weight:600;color:#3b1f31}
+  .scoreBox small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+  .controlsRow{margin-left:auto;display:flex;gap:8px}
+  .btn{background:linear-gradient(90deg,var(--accent),#ff4c8a);border:0;color:white;padding:8px 12px;border-radius:12px;cursor:pointer;font-weight:700;box-shadow:0 6px 18px rgba(255,105,150,0.12)}
+  .btn.ghost{background:#fff;border:1px solid rgba(0,0,0,0.06);color:var(--muted);box-shadow:none}
+
+  /* hearts */
+  .heart{
+    position:absolute;
+    left:0;
+    top:-8%;
+    transform-origin:center;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+    font-size:34px;
+    filter:drop-shadow(0 8px 18px rgba(255,100,140,0.14));
+    will-change: transform, top;
+    cursor:pointer;
+  }
+
+  /* fall animation (duration will be inline style) */
+  @keyframes fall {
+    0%{ transform:translateY(-8vh) scale(1); opacity:1 }
+    80%{ opacity:1 }
+    100%{ transform:translateY(110vh) scale(0.9); opacity:0.9 }
+  }
+
+  /* pop effect when caught */
+  .pop {
+    animation: pop 360ms ease-out forwards;
+  }
+  @keyframes pop {
+    0%{ transform: scale(1) rotate(0deg); opacity:1 }
+    50%{ transform: scale(1.5) rotate(-10deg); opacity:1 }
+    100%{ transform: scale(0.2) rotate(10deg); opacity:0 }
+  }
+
+  /* toast message */
+  .toast{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    top:18px;
+    background:linear-gradient(90deg,#fff,#fff8fb);
+    color: #3b1f31;
+    padding:10px 16px;
+    border-radius:999px;
+    font-weight:600;
+    box-shadow:0 10px 30px rgba(110,40,80,0.08);
+    pointer-events:none;
+    opacity:0; transition:opacity .28s, transform .28s;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-8px)}
+
+  /* modal game over */
+  .modal {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(rgba(11,6,12,0.45), rgba(11,6,12,0.45));
+    z-index:1200; opacity:0; pointer-events:none; transition:opacity .28s;
+  }
+  .modal.show{opacity:1; pointer-events:auto}
+  .modalCard{background:white;border-radius:14px;padding:22px;max-width:420px;text-align:center; box-shadow:0 30px 80px rgba(30,10,40,0.18)}
+  .modalCard h3{margin:0;color:#4b1b3a}
+  .modalCard p{color:var(--muted);margin-top:10px}
+
+  /* small helpers */
+  .topNote{font-size:13px;color:var(--muted);margin-top:8px}
+  footer.note{margin-top:12px;font-size:12px;color:var(--muted);text-align:center}
+
+  @media (max-width:520px){
+    .stage{height:56vh; min-height:360px}
+    .heart{font-size:30px}
+    h1{font-size:24px}
+  }
+
+/* Sparkle effect for caught hearts */
+.sparkle {
+  position: absolute;
+  pointer-events: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,220,180,1) 40%, rgba(255,180,80,0.9) 100%);
+  box-shadow: 0 0 8px rgba(255,200,140,0.9), 0 0 18px rgba(255,150,80,0.6);
+  transform: scale(0.2);
+  opacity: 1;
+  animation: sparkle-pop 700ms ease-out forwards;
+  mix-blend-mode: screen;
+}
+@keyframes sparkle-pop {
+  0% { transform: scale(0.2) translateY(0); opacity: 1; }
+  40% { transform: scale(1.2) translateY(-8px); opacity: 1; }
+  100% { transform: scale(0.6) translateY(-28px); opacity: 0; }
+}
+/* burst ring */
+.sparkle-ring {
+  position: absolute;
+  pointer-events: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,200,140,0.9);
+  opacity: 0.9;
+  transform: scale(0.2);
+  animation: ring-pop 700ms ease-out forwards;
+  mix-blend-mode: screen;
+}
+@keyframes ring-pop {
+  0% { transform: scale(0.2); opacity: 0.9; }
+  60% { transform: scale(1.2); opacity: 0.7; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">🐱</div>
+      <div>
+        <h1>Catch My Hearts</h1>
+        <div class="sub">Tangkap hatiku — tiap hati ada pesan kecil dari aku</div>
+      </div>
+    </header>
+
+    <div class="panel">
+      <div class="hud">
+        <div class="scoreBox">Score <strong id="score">0</strong><small>tangkapan</small></div>
+        <div class="missBox">Miss <strong id="miss">0</strong><small>/5</small></div>
+
+        <div class="controlsRow">
+          <button id="startBtn" class="btn">Start</button>
+          <button id="stopBtn" class="btn ghost">Stop</button>
+        </div>
+      </div>
+
+      <div class="stage" id="stage" aria-live="polite" aria-label="Area game">
+        <!-- hearts will be injected here -->
+        <div class="toast" id="toast"></div>
+      </div>
+
+      <div class="topNote">Ketuk hati di layar. 5 kali melewatkan hati berarti game over — tapi bisa ulang lagi.</div>
+      <footer class="note">Tema pink · sederhana · cocok untuk HP</footer>
+    </div>
+  </div>
+
+  <!-- modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalCard">
+      <h3 id="modalTitle">Wah, hati jatuh...</h3>
+      <p id="modalText">Tapi gapapa, aku tetap sayang sama kamu.</p>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+        <button id="retryBtn" class="btn">Main lagi</button>
+        <button id="closeBtn" class="btn ghost">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* -----------------------------
+  Core game logic
+----------------------------- */
+(() => {
+  const stage = document.getElementById('stage');
+  const scoreEl = document.getElementById('score');
+  const missEl = document.getElementById('miss');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const toast = document.getElementById('toast');
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalText = document.getElementById('modalText');
+  const retryBtn = document.getElementById('retryBtn');
+  const closeBtn = document.getElementById('closeBtn');
+
+  // messages (dari aku)
+  const messages = [
+    "Makasih udah hadir, kamu bikin hari jadi hangat.",
+    "Kamu itu alasan aku sering senyum sendiri.",
+    "Pelan-pelan aja, aku senang kita jalan bersama.",
+    "Kamu bikin duniaku terasa nyaman.",
+    "Aku simpan rindu-rindu kecil buat kamu.",
+    "Kalau bisa, aku mau peluk kamu lama.",
+    "Kamu lembut, bahkan saat aku sedang keras kepala.",
+    "Terima kasih karena kamu ada.",
+    "Kadang aku kagum sama caramu sederhana.",
+    "Aku senang bersamamu — sederhana tapi berarti."
+  ];
+
+  // state
+  let score = 0;
+  let miss = 0;
+  const MISS_LIMIT = 5;
+  let running = false;
+  let spawnTimer = null;
+  let difficulty = { minInterval: 650, maxInterval: 1400, minDur: 4200, maxDur: 7000 };
+
+  // helper random
+  const rand = (a,b)=> Math.random()*(b-a)+a;
+  const clamp = (v,a,b)=> Math.max(a, Math.min(b, v));
+
+  // show toast messages
+  let toastTimeout = null;
+  function showToast(text){
+    toast.textContent = text;
+    toast.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(()=> toast.classList.remove('show'), 1600);
+  }
+
+  // spawn a single heart
+  function spawnHeart(){
+    if(!running) return;
+    const h = document.createElement('div');
+    h.className = 'heart';
+    // default heart char
+    h.textContent = '❤️';
+    // random horizontal position (allow some padding)
+    const stageRect = stage.getBoundingClientRect();
+    const pad = 12;
+    const x = rand(pad, stageRect.width - pad - 36); // 36 is approx heart width
+    h.style.left = x + 'px';
+
+    // random fall duration
+    const dur = rand(difficulty.minDur, difficulty.maxDur);
+    h.style.animation = `fall ${dur}ms linear forwards`;
+
+    // slight rotation random
+    h.style.transform = `rotate(${rand(-8,8)}deg)`;
+
+    // catch handler (touchstart + click)
+    let caught = false;
+    function onCatch(e){
+      e.stopPropagation(); e.preventDefault();
+      if(caught) return;
+      caught = true;
+      // pop animation
+      h.classList.add('pop');
+      // increment score
+      score += 1;
+      scoreEl.textContent = score;
+      // pick a message and show toast
+      const msg = messages[(score-1) % messages.length];
+      showToast(msg);
+      // remove element after pop animation
+      setTimeout(()=>{ try{ h.remove(); }catch(e){} }, 380);
+      // small feedback vibration (mobile)
+      if(navigator.vibrate) navigator.vibrate(40);
+    }
+    h.addEventListener('pointerdown', onCatch);
+// on animation end => if not caught, it's a miss
+    h.addEventListener('animationend', ()=>{
+      try{
+        if(!caught){
+          // heart missed
+          miss += 1;
+          missEl.textContent = miss;
+          // little shake feedback
+          showToast("Ups, hatiku hampir jatuh...");
+          if(navigator.vibrate) navigator.vibrate([20,40,20]);
+        }
+      }catch(e){}
+      try{ h.remove(); }catch(e){}
+      // check miss limit
+      if(miss >= MISS_LIMIT){
+        endGame();
+      }
+    });
+
+    stage.appendChild(h);
+  }
+
+  function scheduleSpawn(){
+    if(!running) return;
+    // gradually speed up based on score
+    const speedFactor = clamp(1 - score*0.007, 0.45, 1); // more score => faster
+    const interval = rand(difficulty.minInterval*speedFactor, difficulty.maxInterval*speedFactor);
+    spawnTimer = setTimeout(()=>{
+      spawnHeart();
+      scheduleSpawn();
+    }, Math.max(220, interval));
+  }
+
+  function startGame(){
+    // reset
+    score = 0; miss = 0;
+    scoreEl.textContent = 0; missEl.textContent = 0;
+    running = true;
+    modal.classList.remove('show');
+    // speed slight reset
+    difficulty = { minInterval: 650, maxInterval: 1400, minDur: 4200, maxDur: 7000 };
+    scheduleSpawn();
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    showToast("Yuk! Tangkap hatiku 💗");
+  }
+
+  function stopGame(){
+    running = false;
+    clearTimeout(spawnTimer);
+    spawnTimer = null;
+    // remove all hearts
+    document.querySelectorAll('.heart').forEach(el=>el.remove());
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    showToast("Game dihentikan");
+  }
+
+  function endGame(){
+    running = false;
+    clearTimeout(spawnTimer);
+    spawnTimer = null;
+    // remove hearts
+    document.querySelectorAll('.heart').forEach(el=>el.remove());
+    // show modal with gentle message
+    modalTitle.textContent = "Ups... hatiku jatuh beberapa kali";
+    modalText.textContent = `Kamu nyaris melewatkan ${miss} hati. Skormu: ${score}. Tapi gapapa, aku tetap sayang.`;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+  }
+
+  // controls
+  startBtn.addEventListener('click', ()=> startGame());
+  stopBtn.addEventListener('click', ()=> stopGame());
+  retryBtn.addEventListener('click', ()=> { modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); startGame(); });
+  closeBtn.addEventListener('click', ()=> { modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); });
+
+  // keyboard shortcuts (for desktop testing)
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === ' '){ e.preventDefault(); if(!running) startGame(); else stopGame(); }
+    if(e.key.toLowerCase() === 'r'){ modal.classList.remove('show'); startGame(); }
+  });
+
+  // accessibility: if screen resized, ensure hearts don't spawn outside
+  window.addEventListener('resize', ()=>{ /* no-op for now */ });
+
+  // initialize UI state
+  stopBtn.disabled = true;
+  startBtn.disabled = false;
+
+})();
+</script>
+<script>
+
+/* Sparkle generator when heart is caught */
+function spawnSparkles(x, y, count=8) {
+  const stage = document.body;
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = Math.random() < 0.6 ? 'sparkle' : 'sparkle-ring';
+    const angle = (Math.PI * 2) * Math.random();
+    const dist = 6 + Math.random() * 24;
+    const ox = Math.cos(angle) * dist;
+    const oy = Math.sin(angle) * dist;
+    s.style.left = (x + ox) + 'px';
+    s.style.top = (y + oy) + 'px';
+    s.style.animationDelay = (Math.random()*120) + 'ms';
+    stage.appendChild(s);
+    setTimeout(()=>{ try{ s.remove(); }catch(e){} }, 1200);
+  }
+}
+/* If an onCatch function exists, wrap it to also spawn sparkles */
+(function(){
+  try{
+    if (typeof onCatch === 'function') {
+      const orig = onCatch;
+      window.onCatch = function(ev){
+        try{
+          let cx = 0, cy = 0;
+          if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+          else if (ev.clientX !== undefined) { cx = ev.clientX; cy = ev.clientY; }
+          spawnSparkles(cx, cy, 9);
+        }catch(e){}
+        return orig(ev);
+      };
+    } else {
+      window._sparkleHook = function(ev){
+        try{
+          let cx = 0, cy = 0;
+          if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+          else if (ev.clientX !== undefined) { cx = ev.clientX; cy = ev.clientY; }
+          spawnSparkles(cx, cy, 9);
+        }catch(e){}
+      };
+    }
+  }catch(e){}
+})();
+
+</script>
+</body>
+</html>
